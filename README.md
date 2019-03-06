@@ -5,7 +5,7 @@
 
 ## Installation
 
-### Install the cli `npm install -g @merryjs/cli` if you have installed you can skip this.
+### Install the cli `npm install -g @merryjs/cli` if you have installed you can skip this.
 
 ### Install plugin in your current workspace
 
@@ -19,3 +19,9 @@ yarn add merry-plugin-flutter --dev
 ```sh
 merry flutter -h
 ```
+
+
+```sh
+merry flutter widget --name my-form 
+```
+will create a widget inside /lib/widgets/my_form.dart named MyFormWidget
