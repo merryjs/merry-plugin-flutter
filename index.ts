@@ -38,6 +38,14 @@ export default (api: Plugin) => {
             await model(api, options)
             break
           case FlutterAction.page:
+            const page = options.stateful
+              ? './page-stateful.hbs'
+              : './page.hbs'
+            await api.tmpl(
+              page,
+              path.join(api.conf.dist, 'pages', `{{snakecase name}}.dart`),
+              options
+            )
             break
           case FlutterAction.widget:
             const tpl = options.stateful
