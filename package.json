@@ -1,35 +1,44 @@
 {
-		"name": "merry-plugin-flutter",
-		"version": "1.0.0",
-		"main": "index.js",
-		"license": "MIT",
-		"description": "generate flutter models pages and widgets",
-		"keywords": [
-				"merry-plugin-flutter",
-				"merry-plugin"
-		],
-		"typings": "index.d.ts",
-		"scripts": {
-				"dev": "tsc -w",
-				"prepublishOnly": "tsc",
-				"precommit": "pretty-quick --staged"
-		},
-		"devDependencies": {
-				"typescript": "latest",
-				"@merryjs/cli": "latest",
-				"@types/debug": "^0.0.30",
-				"@types/diff": "^3.2.2",
-				"@types/fs-extra": "^5.0.4",
-				"@types/inquirer": "^0.0.43",
-				"@types/node": "^10.11.2",
-				"@types/prettier": "^1.13.2",
-				"@types/swagger-parser": "^4.0.2",
-				"husky": "^1.0.1",
-				"prettier": "^1.14.3",
-				"pretty-quick": "^1.7.0",
-				"@types/urijs": "^1.15.38"
-		},
-		"dependencies": {
-				"quicktype": "^15.0.174"
-		}
+  "name": "merry-plugin-flutter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "description": "generate flutter models pages and widgets",
+  "keywords": [
+    "merry-plugin-flutter",
+    "merry-plugin"
+  ],
+  "typings": "index.d.ts",
+  "scripts": {
+    "dev": "tsc -w",
+    "prepublishOnly": "tsc",
+    "precommit": "pretty-quick --staged"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@merryjs/cli": "latest",
+    "@types/debug": "^0.0.30",
+    "@types/diff": "^3.2.2",
+    "@types/fs-extra": "^5.0.4",
+    "@types/inquirer": "^0.0.43",
+    "@types/node": "^10.11.2",
+    "@types/prettier": "^1.13.2",
+    "@types/swagger-parser": "^4.0.2",
+    "husky": "^1.0.1",
+    "prettier": "^1.14.3",
+    "pretty-quick": "^1.7.0",
+    "@types/urijs": "^1.15.38"
+  },
+  "dependencies": {
+    "quicktype": "^15.0.174"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bang88/merry-plugin-flutter.git"
+  },
+  "author": "bang88",
+  "bugs": {
+    "url": "https://github.com/bang88/merry-plugin-flutter/issues"
+  },
+  "homepage": "https://github.com/bang88/merry-plugin-flutter#readme"
 }
