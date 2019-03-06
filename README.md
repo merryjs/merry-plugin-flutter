@@ -25,3 +25,10 @@ merry flutter -h
 merry flutter widget --name my-form 
 ```
 will create a widget inside /lib/widgets/my_form.dart named MyFormWidget
+
+
+```sh
+merry flutter model --name last-close-time --src path/to/your/api
+```
+
+generate model from src
