@@ -5,7 +5,7 @@
 
 ## Installation
 
-### Install the cli `npm install -g @merryjs/cli` if you have installed you can skip this.
+Install the cli `npm install -g @merryjs/cli` if you have installed you can skip this.
 
 ### Install plugin in your current workspace
 
