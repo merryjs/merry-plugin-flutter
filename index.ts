@@ -29,18 +29,38 @@ export default (api: Plugin) => {
           )
           return
         }
-        if (!options.name || typeof options.name === 'function') {
+        if (
+          FlutterAction.fastlane !== action &&
+          (!options.name || typeof options.name === 'function')
+        ) {
           api.log('name option required')
           return
         }
         switch (action) {
+          case FlutterAction.fastlane:
+            await api.fs.copy(
+              path.join(__dirname, './fastlane'),
+              path.join(api.conf.dist, '../fastlane'),
+              {
+                overwrite: true,
+              }
+            )
+            await api.fs.copy(
+              path.join(__dirname, './Gemfile'),
+              path.join(api.conf.dist, '../Gemfile'),
+              {
+                overwrite: true,
+              }
+            )
+            api.log(
+              'fastlane init succeeded. You may need edit:\n- fastlane/.env\n- fastlane/.env.dev\n- fastlane/.env.dev.secret\nand fastlane/.env.prod files for production'
+            )
+            break
           case FlutterAction.model:
             await model(api, options)
             break
           case FlutterAction.page:
-            const page = options.stateful
-              ? './page-stateful.hbs'
-              : './page.hbs'
+            const page = options.stateful ? './page-stateful.hbs' : './page.hbs'
             await api.tmpl(
               page,
               path.join(api.conf.dist, 'pages', `{{snakecase name}}.dart`),

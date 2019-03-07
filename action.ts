@@ -2,6 +2,7 @@ export enum FlutterAction {
   widget = 'widget',
   page = 'page',
   model = 'model',
+  fastlane = 'fastlane',
 }
 
 export interface FlutterOptions {

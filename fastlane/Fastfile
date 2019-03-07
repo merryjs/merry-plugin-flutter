@@ -1,0 +1,400 @@
+fastlane_require 'dotenv'
+fastlane_require 'fileutils'
+desc 'upload file to server'
+# lane :uploadReleaseFile do |options|
+#   sh "../scripts/upload-release.sh #{ENV['APP_UPLOAD_API_URI']} #{ENV['DEV_FILE_UPLOAD_TOKEN']} #{ENV['DEV_FILE_UPLOAD_DIST']}#{ENV['ENV']}#{options[:dist]} #{options[:file]}"
+# end
+# # Check Git Status
+desc 'Check Git Status'
+lane :check_git_status do |options|
+  ensure_git_branch(
+    branch: (options[:name]).to_s
+  )
+  ensure_git_status_clean
+  git_pull
+end
+
+desc 'commit version code'
+lane :commit_version_code do |options|
+  if options[:version]
+    version = options[:version]
+    sh("cd ../ && git add . && git commit -m 'chore:  bump version #{version}'")
+    puts version
+  end
+end
+
+desc 'set_build_env'
+lane :set_build_env do |_options|
+  backup_file(path: 'lib/env.dart')
+  environmentVariables = %(
+/// api base url
+const String baseUrl = '#{ENV['APP_API_URI']}';
+	)
+  File.write('../lib/env.dart', environmentVariables)
+end
+
+desc 'restore_build_env'
+lane :restore_build_env do
+  restore_file(path: 'lib/env.dart') if File.exist?('../lib/env.dart.back')
+end
+before_all do |_lane, _options|
+  Dotenv.load(".env.#{ENV['ENV']}.secret")
+end
+
+after_all do |_lane, _options|
+  restore_build_env
+end
+
+error do |_lane, _exception, _options|
+  restore_build_env
+end
+
+# IOS
+
+platform :ios do
+  error do |_lane, _exception, _options|
+    path = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PLIST_PATH']}"
+    restore_file(path: path) if File.exist?("../#{path}.back")
+  end
+
+  lane :increment_build do
+    xcodeproj = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PROJECT_NAME']}.xcodeproj"
+    increment_build_number_in_plist(
+      xcodeproj: xcodeproj, # optional
+      target: ENV['IOS_APP_NAME'] # optional, or `scheme`
+    ) # Automatically increments build number.
+    commit_version_bump(
+      xcodeproj: xcodeproj # optional
+    )
+  end
+
+  lane :increment_version_patch do
+    xcodeproj = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PROJECT_NAME']}.xcodeproj"
+
+    increment_version_number_in_plist(
+      xcodeproj: xcodeproj, # optional
+      target: ENV['IOS_APP_NAME'], # optional, or `scheme`
+      bump_type: 'patch'
+    )
+    version_number = get_version_number_from_plist(
+      xcodeproj: xcodeproj, # optional
+      target: ENV['IOS_APP_NAME'], # optional, or `scheme`
+      # optional, must be specified if you have different Info.plist build settings
+      # for different build configurations
+      build_configuration_name: 'Release'
+    )
+    # update IOS version number
+    File.write('./ios_version.md', version_number)
+    # Tag release and push to GitHub
+    commit_version_bump(
+      message: "chore: Deploying version #{version_number}.",
+      xcodeproj: xcodeproj, # optional
+      force: true,
+      include: %w[ios_version.md] # include other updated files as part of the version bump
+    )
+    add_git_tag tag: version_number
+    push_to_git_remote
+  end
+
+  desc 'get ios version'
+  lane :getVersion do
+    xcodeproj = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PROJECT_NAME']}.xcodeproj"
+
+    version_number = get_version_number_from_plist(
+      xcodeproj: xcodeproj, # optional
+      target: ENV['IOS_APP_NAME'], # optional, or `scheme`
+      # optional, must be specified if you have different Info.plist build settings
+      # for different build configurations
+      build_configuration_name: 'Release'
+    )
+    puts version_number
+    version_number
+  end
+  # lane :increment_version_minor do
+  #   increment_version_number_in_plist((
+  #     bump_type: "minor"
+  #   )
+  #   commit_version_bump
+  # end
+
+  # lane :increment_version_major do
+  #   increment_version_number_in_plist((
+  #     bump_type: "major"
+  #   )
+  #   commit_version_bump
+  # end
+  desc 'setup ios'
+  lane :setup do |_options|
+    xcode_select '/Applications/Xcode.app'
+
+    desc 'Setup ios environment'
+    desc "Create app id #{ENV['IOS_APP_ID']} on apple dev center, set language to Simplified Chinese "
+    produce(
+      app_name: ENV['IOS_APP_NAME'],
+      skip_itc: true,
+      # Simplified Chinese
+      language: 'zh-Hans',
+      # Optional
+      # App services can be enabled during app creation
+      enable_services: {
+        # app_group: "on"               # Valid values: "on", "off"
+        # apple_pay: "on"               # Valid values: "on", "off"
+        # associated_domains: "on"      # Valid values: "on", "off"
+        # data_protection: "complete"   # Valid values: "complete", "unlessopen", "untilfirstauth"
+        # game_center: "on"             # Valid values: "on", "off"
+        # health_kit: "on"              # Valid values: "on", "off"
+        # home_kit: "on"                # Valid values: "on", "off"
+        # wireless_accessory: "on"      # Valid values: "on", "off"
+        # icloud: "cloudkit"            # Valid values: "legacy", "cloudkit"
+        # in_app_purchase: "on"         # Valid values: "on", "off"
+        # inter_app_audio: "on"         # Valid values: "on", "off"
+        # passbook: "on"                # Valid values: "on", "off"
+        push_notification: 'on' # Valid values: "on", "off"
+        # siri_kit: "on"                # Valid values: "on", "off"
+        # vpn_configuration: "on"       # Valid values: "on", "off"
+      }
+    )
+  end
+
+  lane :setup_push do
+    pem(
+      development: ENV['DEVELOPMENT_PEM'],
+      username: ENV['IOS_USER_ID'],
+      app_identifier: ENV['IOS_APP_ID'],
+      team_id: ENV['IOS_TEAM_ID'],
+      generate_p12: true,
+      p12_password: ENV['CERTIFICATES_P12PASSWORD'],
+      output_path: ENV['CERTIFICATES_DIRECTORY']
+      # force: true
+    )
+  end
+
+  lane :update_title_in_manifest do
+    ios_output_directory = get_ios_output_directory
+    plist = "../#{ios_output_directory}/manifest.plist"
+    manifest = File.read(plist)
+    manifest = manifest.gsub("<string>#{ENV['IOS_PROJECT_NAME']}</string>", "<string>#{ENV['APP_DISPLAY_NAME']}</string>")
+    puts manifest
+    File.write(plist, manifest)
+  end
+
+  lane :build do |_options|
+    if ENV['INCREMENT_BUILD_TYPE'] == 'build'
+      increment_build
+    else
+      increment_version_patch
+    end
+    set_build_env
+    # updateJsVersion
+    plist_full_path = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PLIST_PATH']}"
+    backup_file(path: plist_full_path)
+    xcodeproj = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PROJECT_NAME']}.xcodeproj"
+    xcworkspace = "#{ENV['IOS_PROJECT_PATH']}/#{ENV['IOS_PROJECT_NAME']}.xcworkspace"
+
+    update_info_plist(
+      xcodeproj: xcodeproj,
+      plist_path: ENV['IOS_PLIST_PATH'],
+      block: lambda { |plist|
+        plist['CFBundleIdentifier'] = ENV['IOS_APP_ID']
+        plist['CFBundleName'] = ENV['IOS_APP_NAME']
+        plist['CFBundleDisplayName'] = ENV['IOS_APP_DISPLAY_NAME']
+        plist['JPushAppKey'] = ENV['JPUSH_APP_KEY']
+        plist['JPushIsProduction'] = ENV['JPUSH_APP_FOR_PRODUCTION']
+        plist['CodePushDeploymentKey'] = ENV['CODE_PUSH_IOS_DEPLOYMENT_KEY']
+        # plist['CFBundleShortVersionString'] = ENV['IOS_VERSION']
+        # plist['CFBundleVersion'] = ENV['IOS_VERSION_BUILD_NUMBER']
+      }
+    )
+    ios_output_directory = get_ios_output_directory
+    output_name = get_output_name
+    profile_env_name = "sigh_#{ENV['IOS_APP_ID']}_#{ENV['MATCH_TYPE']}_profile-name"
+    gymOptions = {
+      configuration: (ENV['CONFIGURATION']).to_s,
+      output_directory: ios_output_directory.to_s,
+      output_name: output_name.to_s,
+      silent: true,
+      xcargs: '-allowProvisioningUpdates', # PROVISIONING_PROFILE_SPECIFIER='#{ENV[profile_env_name]}' DEVELOPMENT_TEAM='#{ENV['IOS_TEAM_ID']}'",
+      export_method: (ENV['MATCH_TYPE']).to_s, # Available options: app-store ad-hoc package enterprise development
+      # include_bitcode: false,
+      export_options: {
+        method: ENV['MATCH_TYPE'],
+        manifest: {
+          appURL: "#{ENV['APP_DWONLOAD_DIST_HOST']}#{ENV['ENV']}/ios/#{output_name}.ipa",
+          displayImageURL: "#{ENV['APP_DWONLOAD_DIST_HOST']}#{ENV['ENV']}/ios/app.png",
+          fullSizeImageURL: "#{ENV['APP_DWONLOAD_DIST_HOST']}#{ENV['ENV']}/ios/full.png",
+          title: (ENV['IOS_APP_DISPLAY_NAME']).to_s
+        }
+        # thinning: "<thin-for-all-variants>"
+      }
+    }.merge(
+      File.directory?("../#{xcworkspace}") ?
+        { workspace: xcworkspace } :
+        { project: xcodeproj }
+    )
+    gym(gymOptions)
+    update_title_in_manifest
+    restore_file(path: plist_full_path)
+  end
+  lane :get_output_name do
+    version = getVersion
+    filename = "#{ENV['IOS_PROJECT_NAME']}-#{version}"
+    puts filename
+    filename
+  end
+  lane :get_output_dsym_name do
+    output_name = get_output_name
+    filename = "#{output_name}.app.dSYM.zip"
+    puts filename
+    filename
+  end
+
+  lane :get_ios_output_directory do
+    version = getVersion
+    value = "#{ENV['IOS_GYM_OUTPUT_DIRECTORY']}/#{ENV['ENV']}/#{version}"
+    puts value
+    value
+  end
+
+  lane :upload do
+    ipa = "../#{get_ios_output_directory}/#{get_output_name}.ipa"
+    plist = "../#{get_ios_output_directory}/manifest.plist"
+    # uploadReleaseFile(
+    #   file: ipa,
+    #   dist: '/ios'
+    # )
+    # uploadReleaseFile(
+    #   file: plist,
+    #   dist: '/ios'
+    # )
+  end
+
+  desc 'flutter build ios'
+  lane :flutter_build_ios do
+    sh 'cd ../;flutter build ios --release;cd fastlane;'
+  end
+
+  lane :deploy do |_options|
+    setup
+    flutter_build_ios
+    build
+    upload
+    version = getVersion
+    commit_version_code(
+      version: version
+    )
+  end
+
+  lane :itc_info do
+    deliver(
+      submit_for_review: false,
+      force: false,
+      app_identifier: ENV['IOS_APP_ID']
+    )
+  end
+end
+
+#  ANDROID
+
+platform :android do
+  lane :increment_version_name_app do
+    increment_version_name
+  end
+  lane :incrementVersionCode do
+    increment_version_code
+  end
+  lane :getVersionName do
+    value = get_version_name
+    value
+  end
+  lane :getVersionCode do
+    versionCode = get_version_code
+    versionCode
+  end
+  lane :get_full_version do
+    versionName = getVersionName
+    versionCode = getVersionCode
+    fullVersionName = "#{versionName}.#{versionCode}"
+    fullVersionName
+  end
+  lane :update_version do |options|
+    fullVersionName = get_full_version
+    if options[:commit]
+      # sh("cd ../ && git add . && git commit -m 'chore: android bump version #{fullVersionName}'")
+      commit_version_code(
+        version: fullVersionName
+      )
+    else
+      File.write('./android_version.md', fullVersionName)
+    end
+  end
+  lane :getApkPath do |options|
+    fullVersionName = get_full_version
+    outputPath = "#{ENV['ANDROID_OUTPUT_PATH']}/#{ENV['ENV']}/#{fullVersionName}/"
+    if options[:full]
+      full = "#{outputPath}#{fullVersionName}-release.apk"
+      full.gsub('../', '')
+    else
+      outputPath
+    end
+  end
+  # desc 'update android res strings.xml'
+  # lane :update_strings do
+  #   update_android_strings(
+  #     block: lambda { |strings|
+  #       strings['reactNativeCodePush_androidDeploymentKey'] = ENV['CODE_PUSH_ANDROID_DEPLOYMENT_KEY']
+  #     }
+  #   )
+  # end
+  lane :backup_strings do |options|
+    stringsPath = '../android/app/src/main/res/values/strings.xml'
+    backupPath = '../dist/strings.xml'
+    if options[:restore]
+      # puts stringsPath
+      sh("mv #{backupPath} #{stringsPath}")
+    else
+      sh("cp #{stringsPath} #{backupPath}")
+    end
+  end
+  desc 'flutter build android'
+  lane :flutter_build_android do
+    sh 'cd ../;flutter build apk --release;cd fastlane;'
+  end
+
+  lane :copy do
+    fullVersionName = get_full_version
+    dist = "#{ENV['ANDROID_OUTPUT_PATH']}/#{ENV['ENV']}/#{fullVersionName}"
+    sh "mkdir -p #{dist}"
+    sh "mv ../#{ENV['ANDROID_APK_PATH']} #{dist}/#{fullVersionName}-release.apk"
+  end
+
+  lane :deploy do
+    set_build_env
+    increment_version_name_app
+    # backup_strings
+    # update_strings
+    update_version
+    flutter_build_android
+   
+    copy
+    
+   
+    update_version(
+      commit: true
+    )
+    upload
+  end
+
+  lane :upload do
+    apk = getApkPath(
+      full: true
+    )
+    # uploadReleaseFile(
+    #   file: "../#{apk}",
+    #   dist: '/android'
+    # )
+    # uploadReleaseFile(
+    #   file: '../dist/index.html',
+    #   dist: '/'
+    # )
+  end
+end
