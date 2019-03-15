@@ -2,6 +2,7 @@ import { Plugin } from '@merryjs/cli/lib/plugin'
 import path from 'path'
 import { FlutterAction, FlutterOptions } from './action'
 import model from './model'
+import mobx from './mobx'
 
 /**
  * FlutterAnswers
@@ -13,6 +14,8 @@ export default (api: Plugin) => {
     .option('-n, --name [value]', 'name of your widget/model/page')
     .option('-s, --stateful', 'stateful widget')
     .option('-o, --src [value]', 'source path of quick type')
+    .option('-d, --dist [value]', 'dist folder for widget')
+    .option('-t, --tpl [value]', 'template for generate mobx store')
     .action(
       async (
         action: FlutterAction,
@@ -20,10 +23,12 @@ export default (api: Plugin) => {
           name: '',
         }
       ) => {
-        if (action === undefined) {
+        const availableActions = Object.keys(FlutterAction).filter(
+          f => !(parseInt(f, 10) >= 0)
+        )
+        if (action === undefined || !availableActions.includes(action)) {
           api.log(
-            `action required, supported actions: ${Object.keys(FlutterAction)
-              .filter(f => !(parseInt(f, 10) >= 0))
+            `action required, supported actions: ${availableActions
               .map(f => f)
               .join(' ')}`
           )
@@ -31,6 +36,7 @@ export default (api: Plugin) => {
         }
         if (
           FlutterAction.fastlane !== action &&
+          FlutterAction.mobx !== action &&
           (!options.name || typeof options.name === 'function')
         ) {
           api.log('name option required')
@@ -57,13 +63,22 @@ export default (api: Plugin) => {
             )
             break
           case FlutterAction.model:
+            options.dist = options.dist || 'models'
             await model(api, options)
+            break
+          case FlutterAction.mobx:
+            options.dist = options.dist || 'stores'
+            await mobx(api, options)
             break
           case FlutterAction.page:
             const page = options.stateful ? './page-stateful.hbs' : './page.hbs'
             await api.tmpl(
               page,
-              path.join(api.conf.dist, 'pages', `{{snakecase name}}.dart`),
+              path.join(
+                api.conf.dist,
+                options.dist || 'pages',
+                `{{snakecase name}}.dart`
+              ),
               options
             )
             break
@@ -73,7 +88,11 @@ export default (api: Plugin) => {
               : './widget.hbs'
             await api.tmpl(
               tpl,
-              path.join(api.conf.dist, 'widgets', `{{snakecase name}}.dart`),
+              path.join(
+                api.conf.dist,
+                options.dist || 'pages',
+                `{{snakecase name}}.dart`
+              ),
               options
             )
             break

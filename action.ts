@@ -3,10 +3,13 @@ export enum FlutterAction {
   page = 'page',
   model = 'model',
   fastlane = 'fastlane',
+  mobx = 'mobx'
 }
 
 export interface FlutterOptions {
   name: string
   stateful?: boolean
   src?: string
+  dist?: string
+  tpl?: string
 }

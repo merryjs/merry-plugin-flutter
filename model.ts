@@ -17,9 +17,9 @@ export default async (api: Plugin, options: FlutterOptions) => {
     api.log('src required')
     return
   }
-  api.fs.ensureDirSync(`${api.conf.dist}/models`)
+  api.fs.ensureDirSync(`${api.conf.dist}/${options.dist}`)
   try {
-    const out = `${api.conf.dist}/models/${fileName}`
+    const out = `${api.conf.dist}/${options.dist}/${fileName}`
     await quickType.main({
       out: out,
       lang: 'dart',
