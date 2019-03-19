@@ -90,7 +90,7 @@ export default (api: Plugin) => {
               tpl,
               path.join(
                 api.conf.dist,
-                options.dist || 'pages',
+                options.dist || 'widgets',
                 `{{snakecase name}}.dart`
               ),
               options
