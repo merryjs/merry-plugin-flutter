@@ -1,6 +1,6 @@
 {
   "name": "merry-plugin-flutter",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "main": "index.js",
   "license": "MIT",
   "description": "generate flutter models pages and widgets",
