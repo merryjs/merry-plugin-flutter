@@ -34,7 +34,7 @@ export default async (api: Plugin, options: FlutterOptions) => {
     // merge
     const merge = { ...messages, ...json }
     // s2tw
-    if (f.includes('TW') || f.includes('HK')) {
+    if (f.includes('zh_TW') || f.includes('zh_HK')) {
       const cc = new OpenCC(f.includes('TW') ? 's2tw.json' : 's2hk.json')
       // ignore key start with @ symbol
       for (const key in merge) {
@@ -59,7 +59,8 @@ export default async (api: Plugin, options: FlutterOptions) => {
           }
           try {
             const res = await translate(element, { to: locale })
-            merge[key] = changeCase.upperCaseFirst(res.text)
+            merge[key] =
+              locale === 'en' ? changeCase.upperCaseFirst(res.text) : res.text
           } catch (error) {
             api.log(error)
           }
