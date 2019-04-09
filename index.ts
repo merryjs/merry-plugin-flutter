@@ -3,6 +3,7 @@ import path from 'path'
 import { FlutterAction, FlutterOptions } from './action'
 import model from './model'
 import mobx from './mobx'
+import i18n from './i18n'
 
 /**
  * FlutterAnswers
@@ -37,12 +38,16 @@ export default (api: Plugin) => {
         if (
           FlutterAction.fastlane !== action &&
           FlutterAction.mobx !== action &&
+          FlutterAction.i18n !== action &&
           (!options.name || typeof options.name === 'function')
         ) {
           api.log('name option required')
           return
         }
         switch (action) {
+          case FlutterAction.i18n:
+            i18n(api, options)
+            break
           case FlutterAction.fastlane:
             await api.fs.copy(
               path.join(__dirname, './fastlane'),

@@ -3,7 +3,8 @@ export enum FlutterAction {
   page = 'page',
   model = 'model',
   fastlane = 'fastlane',
-  mobx = 'mobx'
+  mobx = 'mobx',
+  i18n = 'i18n',
 }
 
 export interface FlutterOptions {

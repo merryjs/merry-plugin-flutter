@@ -4,7 +4,6 @@ import { FlutterOptions } from './action'
 import * as quickType from 'quicktype'
 import { generatePaths } from '@merryjs/swagger'
 import changeCase from 'change-case'
-import fg from 'fast-glob'
 export default async (api: Plugin, options: FlutterOptions) => {
   const cacheName = `.merry-cache-${Date.now()}`
   const cache = path.join(__dirname, cacheName)
