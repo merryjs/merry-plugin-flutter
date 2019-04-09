@@ -13,4 +13,6 @@ export interface FlutterOptions {
   src?: string
   dist?: string
   tpl?: string
+  /** auto translate */
+  auto?: boolean
 }

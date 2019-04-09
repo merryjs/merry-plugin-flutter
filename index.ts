@@ -14,6 +14,7 @@ export default (api: Plugin) => {
     .command('flutter [action]')
     .option('-n, --name [value]', 'name of your widget/model/page')
     .option('-s, --stateful', 'stateful widget')
+    .option('-a, --auto', 'auto translation')
     .option('-o, --src [value]', 'source path of quick type')
     .option('-d, --dist [value]', 'dist folder for widget')
     .option('-t, --tpl [value]', 'template for generate mobx store')

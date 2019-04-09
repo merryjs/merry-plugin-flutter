@@ -4,6 +4,10 @@ import { FlutterOptions } from './action'
 import fs from 'fs-extra'
 import fg from 'fast-glob'
 var OpenCC = require('opencc')
+import changeCase from 'change-case'
+
+const translate = require('@vitalets/google-translate-api')
+
 export default async (api: Plugin, options: FlutterOptions) => {
   run({
     api,
@@ -22,29 +26,48 @@ export default async (api: Plugin, options: FlutterOptions) => {
     return
   }
   const messages = fs.readJSONSync(messagesFile)
-  items
-    .filter(item => !(item as string).includes('messages.arb'))
-    .forEach(file => {
-      const f = file as string
-      const json = fs.readJSONSync(f)
-      // merge
-      const merge = { ...messages, ...json }
-      // s2tw
-      if (f.includes('TW') || f.includes('HK')) {
-        const cc = new OpenCC(f.includes('TW') ? 's2tw.json' : 's2hk.json')
-        // ignore key start with @ symbol
-        for (const key in merge) {
-          if (merge.hasOwnProperty(key)) {
-            const element = merge[key]
-            if (key.startsWith('@')) {
-              continue
-            }
-            merge[key] = cc.convertSync(element)
+  const files = items.filter(item => !(item as string).includes('messages.arb'))
+
+  for (const file of files) {
+    const f = file as string
+    const json = fs.readJSONSync(f)
+    // merge
+    const merge = { ...messages, ...json }
+    // s2tw
+    if (f.includes('TW') || f.includes('HK')) {
+      const cc = new OpenCC(f.includes('TW') ? 's2tw.json' : 's2hk.json')
+      // ignore key start with @ symbol
+      for (const key in merge) {
+        if (merge.hasOwnProperty(key)) {
+          const element = merge[key]
+          if (key.startsWith('@')) {
+            continue
+          }
+          merge[key] = cc.convertSync(element)
+        }
+      }
+    } else if (!f.includes('zh') && options.auto) {
+      const matchs = f.match(/intl_(.*)\./)
+      // defaults to en if match failed
+      const locale = matchs ? matchs[1] : 'en'
+      api.log('Translating to %s using Google TranslateToolKit api', locale)
+      for (const key in merge) {
+        if (merge.hasOwnProperty(key)) {
+          const element = merge[key]
+          if (key.startsWith('@')) {
+            continue
+          }
+          try {
+            const res = await translate(element, { to: locale })
+            merge[key] = changeCase.upperCaseFirst(res.text)
+          } catch (error) {
+            api.log(error)
           }
         }
       }
-      fs.writeFileSync(f, JSON.stringify(merge, null, 2))
-    })
+    }
+    fs.writeFileSync(f, JSON.stringify(merge, null, 2))
+  }
 
   run({
     api,

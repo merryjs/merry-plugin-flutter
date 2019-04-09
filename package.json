@@ -1,6 +1,6 @@
 {
   "name": "merry-plugin-flutter",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "main": "index.js",
   "license": "MIT",
   "description": "generate flutter models pages and widgets",
@@ -30,6 +30,7 @@
     "@types/urijs": "^1.15.38"
   },
   "dependencies": {
+    "@vitalets/google-translate-api": "^2.8.0",
     "fast-glob": "^2.2.6",
     "merry-plugin-swagger": "^1.3.3",
     "opencc": "^1.0.5",
