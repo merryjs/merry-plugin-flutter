@@ -15,4 +15,12 @@ export interface FlutterOptions {
   tpl?: string
   /** auto translate */
   auto?: boolean
+  /**
+   * skip key if need
+   */
+  skip?: string
+  /**
+   * clean dist folder
+   */
+  clean_stores?: boolean
 }

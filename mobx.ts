@@ -21,12 +21,20 @@ export default async (api: Plugin, options: FlutterOptions) => {
   } else {
     options.tpl = './store.tpl'
   }
+
+  if (options.clean_stores) {
+    api.fs.emptyDirSync(`${api.conf.dist}/${options.dist}`)
+  }
+
   const result = await generatePaths(options.src, {
     definitionName: '{path}',
   })
 
   for (const key in result) {
     if (result.hasOwnProperty(key)) {
+      if (options.skip && new RegExp(options.skip, 'gi').test(key)) {
+        continue
+      }
       const element = result[key]
       const fileName = getFullPath(key)
       const out = `${api.conf.dist}/${options.dist}/${fileName}.dart`

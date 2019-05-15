@@ -14,10 +14,15 @@ export default (api: Plugin) => {
     .command('flutter [action]')
     .option('-n, --name [value]', 'name of your widget/model/page')
     .option('-s, --stateful', 'stateful widget')
+    .option('-c, --clean_stores', 'clean stores')
     .option('-a, --auto', 'auto translation')
     .option('-o, --src [value]', 'source path of quick type')
     .option('-d, --dist [value]', 'dist folder for widget')
     .option('-t, --tpl [value]', 'template for generate mobx store')
+    .option(
+      '-k, --skip [value]',
+      "skip some key if you don't need it (mobx only) "
+    )
     .action(
       async (
         action: FlutterAction,
@@ -74,6 +79,7 @@ export default (api: Plugin) => {
             break
           case FlutterAction.mobx:
             options.dist = options.dist || 'stores'
+
             await mobx(api, options)
             break
           case FlutterAction.page:
