@@ -74,7 +74,7 @@ export default async (api: Plugin, options: FlutterOptions) => {
     api,
     msg: 'generate dart message from arb',
     command:
-      'flutter pub pub run intl_translation:generate_from_arb --output-dir=lib/l10n --codegen_mode=release --no-use-deferred-loading lib/*.dart lib/**/*.dart lib/l10n/intl_*.arb',
+      'flutter pub pub run intl_translation:generate_from_arb --output-dir=lib/l10n --no-use-deferred-loading lib/*.dart lib/**/*.dart lib/l10n/intl_*.arb',
   })
 }
 /**
