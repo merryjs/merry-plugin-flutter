@@ -28,6 +28,7 @@ export default async (api: Plugin, options: FlutterOptions) => {
 
   const result = await generatePaths(options.src, {
     definitionName: '{path}',
+    schema: true,
   })
 
   for (const key in result) {
@@ -38,31 +39,102 @@ export default async (api: Plugin, options: FlutterOptions) => {
       const element = result[key]
       const fileName = getFullPath(key)
       const out = `${api.conf.dist}/${options.dist}/${fileName}.dart`
-      const tsFile = `${cache}/${options.dist}/${fileName}.ts`
+      const parametersFile = `${cache}/${
+        options.dist
+      }/${fileName}-parameters.json`
+      const responsesFile = `${cache}/${
+        options.dist
+      }/${fileName}-responses.json`
+      const dartParametersFile = `${cache}/${
+        options.dist
+      }/${fileName}-parameters.dart`
+      const dartResponsesFile = `${cache}/${
+        options.dist
+      }/${fileName}-responses.dart`
 
-      // generate ts file
-      await api.tmpl('./model.tpl', tsFile, {
-        definitions: result[key],
-      })
+      for (const k in element) {
+        if (element.hasOwnProperty(k)) {
+          let el = element[k]
+          if (el.parameters) {
+            await api.fs.ensureFile(parametersFile)
+            try {
+              const json = JSON.parse(el.parameters)
+              let jsp = { ...json.properties }
+              if (json && jsp) {
+                // handle named parameters but in body
+                if (Object.keys(jsp).length === 1) {
+                  Object.keys(jsp).forEach(op => {
+                    if (jsp[op]['in'] === 'body') {
+                      jsp = jsp[op].schema.properties
+                    }
+                  })
+                }
 
-      // generate dart files from typescript files
-      const dartFile = `${cache}/${options.dist}/${fileName}.dart`
-      await quickType.main({
-        srcLang: 'typescript',
-        src: [tsFile],
-        lang: 'dart',
-        out: dartFile,
-      })
+                for (const j in jsp) {
+                  if (jsp.hasOwnProperty(j)) {
+                    const jn = jsp[j]
+                    if (jn.type === 'number' && jn.format) {
+                      let type = 'number'
+                      switch (jn.format) {
+                        case 'int32':
+                        case 'int64':
+                          type = 'integer'
+                          break
+                        // TODO: add more type if needed
+                        default:
+                          break
+                      }
+                      jsp[j].type = type
+                    }
+                  }
+                }
+              }
+              json.properties = jsp
+              element[k].parameters = JSON.stringify(json, null, 2)
+            } catch (error) {}
+            el = element[k]
+            await api.fs.writeFile(parametersFile, el.parameters, 'utf-8')
+            await quickType.main({
+              srcLang: 'schema',
+              src: [parametersFile],
+              lang: 'dart',
+              out: dartParametersFile,
+              topLevel: el.definitionParamsName,
+            })
+          }
+          if (el.responses) {
+            await api.fs.ensureFile(responsesFile)
+            await api.fs.writeFile(responsesFile, el.responses, 'utf-8')
+            await quickType.main({
+              srcLang: 'schema',
+              src: [responsesFile],
+              lang: 'dart',
+              out: dartResponsesFile,
+              topLevel: el.definitionEntityName,
+            })
+          }
+        }
+      }
 
       // read ts to dart file.
-      const dartModel = api.fs
-        .readFileSync(dartFile, 'utf-8')
-        // replace import so we can import it in anywhere
-        .replace("import 'dart:convert';", '')
+      const dartParameters = api.fs.existsSync(dartParametersFile)
+        ? api.fs
+            .readFileSync(dartParametersFile, 'utf-8')
+            // replace import so we can import it in anywhere
+            .replace("import 'dart:convert';", '')
+            // Don not know why quick type add an Class after our parameters name
+            .replace(/ParamsClass\b/g, 'Params')
+        : ''
+      const dartResponses = api.fs.existsSync(dartResponsesFile)
+        ? api.fs
+            .readFileSync(dartResponsesFile, 'utf-8')
+            // replace import so we can import it in anywhere
+            .replace("import 'dart:convert';", '')
+        : ''
 
       await api.tmpl(options.tpl, out, {
         definitions: element,
-        model: dartModel,
+        model: `${dartParameters}\n${dartResponses}`,
         fileName: getFullPath(key, true),
       })
     }
