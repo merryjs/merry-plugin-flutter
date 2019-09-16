@@ -5,6 +5,7 @@ export enum FlutterAction {
   fastlane = 'fastlane',
   mobx = 'mobx',
   i18n = 'i18n',
+  init = 'init',
 }
 
 export interface FlutterOptions {

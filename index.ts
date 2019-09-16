@@ -45,12 +45,40 @@ export default (api: Plugin) => {
           FlutterAction.fastlane !== action &&
           FlutterAction.mobx !== action &&
           FlutterAction.i18n !== action &&
+          FlutterAction.init !== action &&
           (!options.name || typeof options.name === 'function')
         ) {
           api.log('name option required')
           return
         }
         switch (action) {
+          case FlutterAction.init:
+            await api.fs.writeFile(
+              '.merryrc',
+              JSON.stringify(
+                {
+                  dist: 'lib',
+                },
+                null,
+                2
+              )
+            )
+            const settings = '.vscode/settings.json'
+            if (!api.fs.existsSync(settings)) {
+              api.fs.ensureFileSync(settings)
+              await api.fs.writeFile(
+                settings,
+                JSON.stringify(
+                  {
+                    'editor.formatOnSave': true,
+                  },
+                  null,
+                  2
+                )
+              )
+            }
+            break
+
           case FlutterAction.i18n:
             i18n(api, options)
             break
